@@ -6,7 +6,7 @@ from mysql.connector import Error
 from db import *
 
 
-connection = create_db_connection("localhost", "root", "root", "pa")
+connection = create_db_connection("localhost", "root", "root54668", "pa")
 
 users= []
 class User:
@@ -28,9 +28,22 @@ bot = commands.Bot(
 )
 bot.reminders = 0;
 
+
+#check to see if the reminder table has changed, if it has, update reminders
+# async def reminders_task():
+#     checksum = 0;
+#     while True:
+#         query = "checksum table habits;"
+#         check = read_query(connection,query)
+#         if(checksum != check):
+#             checksum = check 
+#             generateReminders()
+#         await asyncio.sleep(20)
+
+
 @bot.check
 async def check_user(ctx):
-    query = "SELECT * from users WHERE id =" + str(ctx.message.author.id)
+    query = "SELECT * from users WHERE UserID =" + str(ctx.message.author.id)
     def check(ms):
         return ms.channel == ctx.message.channel and ms.author == ctx.message.author and ms.author != bot.user
     flag = len(read_query(connection,query))
@@ -62,7 +75,7 @@ async def check_user(ctx):
         return True
 
 
-cogs = ['cogs.basic','cogs.sleep','cogs.log','cogs.request','cogs.habit']
+cogs = ['cogs.basic','cogs.sleep','cogs.request','cogs.habit']
 
 @bot.event
 async def on_ready():
@@ -70,6 +83,7 @@ async def on_ready():
     #users = addUserData()
     for cog in cogs:
         bot.load_extension(cog)
+    #bot.loop.create_task(reminders_task())
     return
 @bot.event
 async def on_message(message):
@@ -98,4 +112,4 @@ async def on_message(message):
 #     for u in users:
 #         f.write(u +"\n")
 
-bot.run('NzQ3MjkxNjc5ODE1NDk5ODI5.X0MvnA.BukSKk_8vetCFlkHnyFwF8hSjhQ', bot=True, reconnect=True)
+bot.run('', bot=True, reconnect=True)
