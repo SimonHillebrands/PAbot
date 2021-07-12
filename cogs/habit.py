@@ -5,6 +5,8 @@ from time import mktime
 import mysql.connector
 from mysql.connector import Error
 from db import *
+from dateutil.parser import parse
+from dateutil.tz import gettz
 colors = {
   'DEFAULT': 0x000000,
   'WHITE': 0xFFFFFF,
@@ -49,10 +51,27 @@ class Habit(commands.Cog):
         habit_name = habit_name.split(' ',1)[1]
         def check(ms):
             return ms.channel == ctx.message.channel and ms.author == ctx.message.author
+
+        comp = [
+            {
+                "type": 1,
+                "components": [
+                    {
+                        "type": 2,
+                        "label": "Click me!",
+                        "style": 1,
+                        "custom_id": "click_one"
+                    }
+                ]
+
+            }
+        ]
         await ctx.send(content="Creating a habit named "+habit_name+
-        " how often would you like to do this habit?"
-        "\n1)Every day\n2)Specific Days of the week"
-        "\n3)Days per period\n4)Every n days")
+        " how often would you like to do this habit?",components=comp)
+        # await ctx.send(content="Creating a habit named "+habit_name+
+        # " how often would you like to do this habit?"
+        # "\n1)Every day\n2)Specific Days of the week"
+        # "\n3)Days per period\n4)Every n days")
 
         msg = await self.bot.wait_for('message', check=check)        
         
@@ -61,12 +80,14 @@ class Habit(commands.Cog):
         now = datetime.fromtimestamp(mktime(gm))
         
         habit = {
-            "name": habit_name,
+            "name": habit_name.lower(),
             "Discription": None,
             "ReminderText": None,
             "GoalNumber" : None, #for user inputing a number goal
             "Creation":now,
+            "Start": None, #day the habit should start
             "Reminder": False, #reminders on or off
+            "ReminderTime": None, #Time of day the reminder should be sent
             "Period":None, #days per period
             "Category": None,#defaults to daily (2 for month, 3 year)
             "Days":None, #days of week to set for
@@ -78,7 +99,9 @@ class Habit(commands.Cog):
             "ReminderText": "string",
             "GoalNumber" : "int", #for user inputing a number goal
             "Creation":"string",
+            "Start" : "string",
             "Reminder": "boolean", #reminders on or off
+            "ReminderTime": "string",
             "Period":"int", #days per period
             "Category": "int",#defaults to daily (2 for month, 3 year)
             "Days":"string", #days of week to set for
@@ -127,7 +150,12 @@ class Habit(commands.Cog):
 
         if "y" in msg.content.lower():
             habit["Reminder"] = True
-
+            await ctx.send(content="What time would you like the reminder to be sent?")
+            msg = await self.bot.wait_for('message', check=check)  
+            time = parse(msg)     
+            #get the time and convert it into an hh:mm:ss format
+            time = time.strftime("%H:%M:%S")
+            habit["ReminderTime"] = parse(msg)
         await ctx.send(content="Would you like to set a goal number for this habit?(y/n)")
         msg = await self.bot.wait_for('message', check=check)        
         if "y" in msg.content.lower():
@@ -135,6 +163,9 @@ class Habit(commands.Cog):
             msg = await self.bot.wait_for('message', check=check)
             habit["GoalNumber"] = int(msg.content)                  
 
+
+        #TODO: allow the user to choose the start time
+        habit["Start"] = habit["Creation"]
         string = "insert into habits VALUES("+str(ctx.message.author.id)+","
         for key in habit:
             if habit[key] == None:
@@ -146,7 +177,7 @@ class Habit(commands.Cog):
         string = string[:-1]
         string+=")"
         insert = string;
-        connection = create_db_connection("localhost", "root", "root", "pa")
+        connection = create_db_connection("localhost", "root", "root54668", "pa")
         try:
           execute_query(connection,insert)
         except:
